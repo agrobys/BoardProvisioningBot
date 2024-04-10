@@ -13,7 +13,7 @@ def create_webhooks() -> None:
     webhooks.append(
         api.webhooks.create(
             name="MentionWebhook",
-            targetUrl=URL + "/mention",
+            targetUrl="https://" + URL + "/mention",
             resource="messages",
             event="created",
         )
@@ -21,7 +21,7 @@ def create_webhooks() -> None:
     webhooks.append(
         api.webhooks.create(
             name="CardWebhook",
-            targetUrl=URL + "/card",
+            targetUrl="https://" + URL + "/card",
             resource="attachmentActions",
             event="created",
         )
@@ -29,7 +29,7 @@ def create_webhooks() -> None:
     webhooks.append(
         api.webhooks.create(
             name="AddedToRoomWebhook",
-            targetUrl=URL + "/added",
+            targetUrl="https://" + URL + "/added",
             resource="memberships",
             event="created",
             filter="personId=" + BOT_ID
@@ -38,7 +38,7 @@ def create_webhooks() -> None:
     webhooks.append(
         api.webhooks.create(
             name="RemovedFromRoomWebhook",
-            targetUrl=URL + "/removed",
+            targetUrl="https://" + URL + "/removed",
             resource="memberships",
             event="deleted",
             filter="personId=" + BOT_ID
