@@ -2,9 +2,7 @@ from __future__ import print_function  # Needed if you want to have console outp
 import yaml, json
 from flask import *
 from bot import Bot
-
-with open('variables2.yaml', 'r') as file:
-    variables = yaml.safe_load(file)
+import os
 
 
 app = Flask(__name__)
@@ -85,9 +83,9 @@ if __name__ == "__main__":
             data = json.load(file)
     except:
         data = {
-            "bot_name": variables["bot_name"],
-            "bot_token": variables["bot_token"],
-            "bot_email": variables["bot_email"],
+            "bot_name": os.environ.get("BOT_NAME"),
+            "bot_token": os.environ.get("BOT_TOKEN"),
+            "bot_email": os.environ.get("BOT_EMAIL"),
             "orgs": [],
             "org_admin": {},
             "org_allowed_users": {},
