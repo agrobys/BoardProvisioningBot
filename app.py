@@ -97,6 +97,6 @@ if __name__ == "__main__":
     print("Starting bot")
     bot.startup()
     try:
-        app.run(host="0.0.0.0")
+        app.run(host="0.0.0.0", port=os.environ.get("BOT_PORT"))
     finally:
         bot.teardown()
