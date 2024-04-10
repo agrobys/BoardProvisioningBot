@@ -1,13 +1,13 @@
 # Webex Board Provisioning Bot
 
->This code is NOT written for production. Please use for testing purposes only.
+>This README has not yet been updated from the test version. Please wait or contact me for assistance.
 
 Credits go to @schachem for his echo bot which I used as a sceleton for this bot! Find it at: https://github.com/schachem/EchoBot
 
 How to start the bot:
 
 - Install ngrok and necessary packages.
-- To get the token for my bot, send me a message at agrobys@cisco.com. Otherwise, you can create your own bot at https://developer.webex.com/my-apps/new/bot and paste its token, id, email, and name in the .yaml file.
+- You can create your own bot at https://developer.webex.com/my-apps/new/bot. Paste its token, id, email, and name in the .yaml file.
 - Run app.py
 
 How to interact with the bot:

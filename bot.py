@@ -1,5 +1,4 @@
 from __future__ import print_function  # Needed if you want to have console output using Flask
-from pyngrok import ngrok
 from webexteamssdk import WebexTeamsAPI, RateLimitWarning
 from webexteamssdk.models.cards import AdaptiveCard, TextBlock, Text
 from webexteamssdk.models.cards.actions import Submit
@@ -73,65 +72,12 @@ class Bot:
         self.org_allowed_users = data["org_allowed_users"]
         self.org_id_to_email = data["org_id_to_email"]
 
-    # Creates 2 webhooks: Bot mentioned and adaptive card submitted
-    def create_webhooks(self) -> None:
-        print("Creating webhooks")
-        self.webhooks.append(
-            self.api.webhooks.create(
-                name="MentionWebhook",
-                targetUrl=self.https_tunnel.public_url + "/mention",
-                resource="messages",
-                event="created",
-                # filter="roomType=direct"
-            )
-        )
-        self.webhooks.append(
-            self.api.webhooks.create(
-                name="CardWebhook",
-                targetUrl=self.https_tunnel.public_url + "/card",
-                resource="attachmentActions",
-                event="created",
-                # filter="roomType=direct"
-            )
-        )
-        self.webhooks.append(
-            self.api.webhooks.create(
-                name="AddedToRoomWebhook",
-                targetUrl=self.https_tunnel.public_url + "/added",
-                resource="memberships",
-                event="created",
-                filter="personId=" + self.id
-            )
-        )
-        self.webhooks.append(
-            self.api.webhooks.create(
-                name="RemovedFromRoomWebhook",
-                targetUrl=self.https_tunnel.public_url + "/removed",
-                resource="memberships",
-                event="deleted",
-                filter="personId=" + self.id
-            )
-        )
-
-    def delete_webhooks(self) -> None:
-        print("Deleting webhooks")
-        for webhook in self.webhooks:
-            self.api.webhooks.delete(webhook.id)
-            print("Webhook deleted")
-
-    def start_tunnel(self) -> None:
-        self.https_tunnel = ngrok.connect(bind_tls=True, addr="http://localhost:5042")
-
-    def stop_tunnel(self) -> None:
-        ngrok.disconnect(self.https_tunnel.api_url)
-
     def startup(self) -> None:
         webhooks = self.api.webhooks.list()
         for webhook in webhooks:
             self.webhooks.append(webhook)
-        self.delete_webhooks()
-        self.start_tunnel()
-        self.create_webhooks()
+        if len(self.webhooks) < 4:
+            print("Don't have all webhooks. Please verify")
 
     def save(self):
         admins_saved = {}
@@ -152,8 +98,6 @@ class Bot:
 
     def teardown(self) -> None:
         self.save()
-        # self.delete_webhooks()
-        self.stop_tunnel()
 
     def reinit(self, room_id):
         self.api.messages.create(roomId=room_id, text="Access token expired or not valid. Reinitializing...")

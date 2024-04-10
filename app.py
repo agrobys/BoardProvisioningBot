@@ -1,6 +1,6 @@
 from __future__ import print_function  # Needed if you want to have console output using Flask
 import yaml, json
-from flask import Flask, request
+from flask import *
 from bot import Bot
 
 with open('variables2.yaml', 'r') as file:
@@ -8,6 +8,11 @@ with open('variables2.yaml', 'r') as file:
 
 
 app = Flask(__name__)
+
+
+@app.route("/", methods=['GET'])
+def index():
+    return render_template('index.html')
 
 
 # Bot mentioned -> Send adaptive card and handle special commands
@@ -94,6 +99,6 @@ if __name__ == "__main__":
     print("Starting bot")
     bot.startup()
     try:
-        app.run(port=5042)
+        app.run(host="0.0.0.0")
     finally:
         bot.teardown()
