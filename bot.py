@@ -136,6 +136,15 @@ class Bot:
             self.org_allowed_users[org_id].append(user_id)
         return user_id
 
+    def remove_allowed_user(self, org_id, email):
+        admin = self.org_admin[org_id]
+        user_id = admin.get_id_from_email(email)
+        if user_id != "" and user_id in self.org_allowed_users[org_id]:
+            self.org_allowed_users[org_id].remove(user_id)
+            return user_id
+        else:
+            return ""
+
     def handle_added(self, room_id):
         self.api.messages.create(room_id, text="Hello! I'm here to help you provision Webex Boards for your "
                                                "organization. Please provide me with your organization ID and an "
@@ -235,16 +244,28 @@ class Bot:
                                                    f"room).\n\nIf you require further assistance, please contact me "
                                                    f"at agrobys@cisco.com.")
 
-        # Adds an allowed user on "add" command
+        # Adds allowed users on "add" command
         elif len(command) > 1 and command[0] == "add" and actor_id in self.org_allowed_users[org_id]:
             print(f"User {self.org_id_to_email[org_id][actor_id]} allowed.")
             for email in command[1:]:
                 user_id = self.add_allowed_user(org_id, email)
-            # Empty user_id means provided email was not found
+                # Empty user_id means provided email was not found
                 if user_id == "":
-                    self.api.messages.create(room_id, text="Please provide a valid email as a second. If the email was valid, check if you need to update your access token. Thank you")
+                    self.api.messages.create(room_id, text=f"Please provide a valid email as a second argument. If {email} was valid, check if you need to update your access token.")
                 else:
-                    self.api.messages.create(room_id, text=f"User {command[1]} added successfully.")
+                    self.api.messages.create(room_id, text=f"User {email} added successfully.")
+
+        # Removes allowed users on "remove" command
+        elif len(command) > 1 and command[0] == "remove" and actor_id in self.org_allowed_users[org_id]:
+            print(f"User {self.org_id_to_email[org_id][actor_id]} allowed.")
+            for email in command[1:]:
+                user_id = self.remove_allowed_user(org_id, email)
+                # Empty user_id means provided email was not found
+                if user_id == "":
+                    self.api.messages.create(room_id,
+                                                 text=f"User not found in allowed list. If {email} was valid, check if you need to update your access token.")
+                else:
+                    self.api.messages.create(room_id, text=f"User {email} removed successfully.")
 
         # Sends card if no special command is detected
         else:
