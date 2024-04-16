@@ -3,6 +3,7 @@ import yaml, json
 from flask import *
 from bot import Bot
 import os
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 
 app = Flask(__name__)
@@ -97,6 +98,7 @@ if __name__ == "__main__":
     print("Starting bot")
     bot.startup()
     try:
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
         app.run(host="0.0.0.0")
     finally:
         bot.teardown()
