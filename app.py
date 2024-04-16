@@ -99,6 +99,6 @@ if __name__ == "__main__":
     bot.startup()
     try:
         app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
-        app.run(host="0.0.0.0")
+        app.run(host="0.0.0.0", port=os.environ.get("BOT_PORT"))
     finally:
         bot.teardown()
