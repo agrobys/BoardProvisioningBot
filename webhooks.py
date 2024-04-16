@@ -19,6 +19,7 @@ def create_webhooks() -> None:
             event="created",
         )
     )
+    print("Webhook created")
     webhooks.append(
         api.webhooks.create(
             name="CardWebhook",
@@ -27,6 +28,7 @@ def create_webhooks() -> None:
             event="created",
         )
     )
+    print("Webhook created")
     webhooks.append(
         api.webhooks.create(
             name="AddedToRoomWebhook",
@@ -36,6 +38,7 @@ def create_webhooks() -> None:
             filter="personId=" + BOT_ID
         )
     )
+    print("Webhook created")
     webhooks.append(
         api.webhooks.create(
             name="RemovedFromRoomWebhook",
@@ -45,6 +48,7 @@ def create_webhooks() -> None:
             filter="personId=" + BOT_ID
         )
     )
+    print("Webhook created")
 
 
 def delete_webhooks() -> None:
@@ -58,4 +62,4 @@ def delete_webhooks() -> None:
 def print_webhooks() -> None:
     webhooks = api.webhooks.list()
     for webhook in webhooks:
-        print(webhook.id)
+        print(webhook)
