@@ -41,7 +41,7 @@ To run this code in your own environment, you need to:
 2. Have somewhere to run it. Mine runs on a Debian Linux VM, but anything with Python should work. Create a directory with the code.
 3. Create an environment and export the variables BOT_URL, BOT_PORT, BOT_TOKEN, BOT_ID, BOT_NAME, and BOT_EMAIL (all strings). 
 4. Please note: 
-   - **BOT_URL should not include 'https://'**.
+   - **BOT_URL should include 'https://' or 'http://'**.
    - BOT_PORT is the port you'd like Flask to run on.
    - The remaining values are your bot's attributes.
 5. Install Python3 and the packages defined in ```requirements.txt```. 
