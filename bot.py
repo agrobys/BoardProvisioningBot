@@ -1,5 +1,5 @@
 from __future__ import print_function  # Needed if you want to have console output using Flask
-from webexteamssdk import WebexTeamsAPI, RateLimitWarning
+from webexteamssdk import WebexTeamsAPI
 from webexteamssdk.models.cards import AdaptiveCard, TextBlock, Text
 from webexteamssdk.models.cards.actions import Submit
 from admin import Admin
@@ -118,6 +118,9 @@ class Bot:
         except KeyError:
             print("Org doesn't exist. Creating")
             admin = create_admin(access_token, org_id)
+            if not admin.check_org_connectivity():
+                del admin
+                return None
             self.org_admin[org_id] = admin
             self.org_allowed_users[org_id] = [user_id]
             self.org_id_to_email[org_id] = {}
@@ -171,7 +174,11 @@ class Bot:
                 access_token = card_input.inputs["access_token"]
                 admin = self.init_org(org_id, access_token, room_id, actor_id)
                 if admin:
-                    self.api.messages.create(room_id, text="Initialization success")
+                    self.api.messages.create(room_id, text="Initialization success.")
+                else:
+                    self.api.messages.create(room_id, text="Initialization unsuccessful. Please check your "
+                                                           "organization ID and access token or contact "
+                                                           "agrobys@cisco.com for assistance.")
             except KeyError:
                 self.api.messages.create(room_id, text="Please initialize", attachments=[self.init_card])
                 return
@@ -181,8 +188,8 @@ class Bot:
                 workspace_name = card_input.inputs["workspace"]
             except KeyError:
                 self.api.messages.create(room_id, text="Bot initialized. If you need to update the access token, "
-                                                       "mention the bot and specify 'token [NEW TOKEN HERE]', or type "
-                                                       "'help' to view available commands.")
+                                                       "please use the 'reinit' command, or type"
+                                                       "'help' to view all available commands.")
                 return
             # model = card_input.inputs["model"]
             # if model != "":
@@ -239,6 +246,8 @@ class Bot:
                                                    f"out to get an activation code.\n\nOther commands include:\n- "
                                                    f"add [email]: add an authorized user to your organization; add "
                                                    f"several at once separated with a space\n- "
+                                                   f"remove [email]: remove an authorized user from your organization; "
+                                                   f"remove several at once separated with a space\n- "
                                                    f"token [token]: update the access token\n- reinit: reinitialize "
                                                    f"the bot (if you would like to change the organization for this "
                                                    f"room).\n\nIf you require further assistance, please contact me "

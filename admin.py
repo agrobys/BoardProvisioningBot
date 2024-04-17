@@ -17,6 +17,15 @@ class Admin:
         except ApiError:
             self.my_id = ""
 
+    def check_org_connectivity(self):
+        try:
+            requests.get(
+            url=f'https://webexapis.com/v1/workspaces?orgId={self.org_id}',
+            headers=self.headers)
+            return True
+        except ApiError:
+            return False
+
     def update_token(self, token):
         self.my_token = token
         try:
