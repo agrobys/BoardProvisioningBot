@@ -188,7 +188,7 @@ class Bot:
                 workspace_name = card_input.inputs["workspace"]
             except KeyError:
                 self.api.messages.create(room_id, text="Bot initialized. If you need to update the access token, "
-                                                       "please use the 'reinit' command, or type"
+                                                       "please use the 'reinit' command, or type "
                                                        "'help' to view all available commands.")
                 return
             # model = card_input.inputs["model"]
