@@ -6,11 +6,11 @@ Credits go to @schachem for his echo bot which I used as a skeleton to build the
 
 ### Why would you use this bot?
 
-- Do you have a Control Hub instance which you use to manage Webex devices? 
-- Do you have a space of people which you'd like to be able to retrieve activation codes without asking you to do it for them? 
-- Do you simply wish to be able to create a device activation code from the Webex App?
+- Do you have a Control Hub instance that you use to add Webex devices? 
+- Do you have a space of people who you'd like to retrieve activation codes without having to ask you to do it for them? 
+- Do you simply want to create a device activation code from the Webex App?
 
-If any of those are true, this bot could make your life a bit nicer. 
+If any of those are true, this bot could make your life a bit easier. 
 
 ### How to interact with the bot:
 
@@ -29,7 +29,7 @@ If any of those are true, this bot could make your life a bit nicer.
 
 ### Be aware that:
 
-- Anyone who has the admin's access token can perform any API operations on your organization's Control Hub. Be careful pasting it in the chat.
+- Anyone who has the admin's access token can perform any API operations on your organization's Control Hub. Don't paste it in the chat.
 
 >If you have any questions, contact me at agrobys@cisco.com. 
 
