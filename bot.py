@@ -185,7 +185,7 @@ class Bot:
         if actor_id in self.org_allowed_users[org_id]:
             print(f"User {self.org_id_to_email[org_id][actor_id]} allowed.")
             try:
-                workspace_name = card_input.inputs["workspace"]
+                workspace_name = card_input.inputs["workspace"].strip()
             except KeyError:
                 self.api.messages.create(room_id, text="Bot initialized. If you need to update the access token, "
                                                        "please use the 'reinit' command, or type "
