@@ -1,7 +1,5 @@
 # Webex Board Provisioning Bot
 
->This README has not yet been fully updated from the test version. Please wait or contact me for assistance.
-
 Credits go to @schachem for his echo bot which I used as a skeleton to build the test version for this bot! Find it at: https://github.com/schachem/EchoBot.
 
 ### Why use this bot?
