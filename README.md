@@ -4,7 +4,7 @@
 
 Credits go to @schachem for his echo bot which I used as a skeleton to build the test version for this bot! Find it at: https://github.com/schachem/EchoBot.
 
-### Why would you use this bot?
+### Why use this bot?
 
 - Do you have a Control Hub instance that you use to add Webex devices? 
 - Do you have a space of people who you'd like to retrieve activation codes without having to ask you to do it for them? 
