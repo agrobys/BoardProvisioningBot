@@ -29,7 +29,7 @@ If any of those are true, this bot could make your life a bit easier.
 
 ### Be aware that:
 
-- Anyone who has the admin's access token can perform any API operations on your organization's Control Hub. Don't paste it in the chat.
+- Anyone who has the admin's access token can perform any API operations on your organization's Control Hub. Don't paste it in the chat carelessly.
 
 >If you have any questions, contact me at agrobys@cisco.com. 
 
