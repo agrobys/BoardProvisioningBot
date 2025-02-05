@@ -76,9 +76,12 @@ class Admin:
                 headers=self.headers)
         except ApiError:
             return ""
-        print(response.json())
-        for workspace in response.json()["items"]:
-            workspace_id = workspace["id"]
+        try:
+            for workspace in response.json()["items"]:
+                workspace_id = workspace["id"]
+        except KeyError: # lazy workaround, sorry, means that likely token must be updated because an error was returned
+            print(f"Error returned. Response: {response.json()}")
+            return ""
         # Create workspace if it doesn't exist
         if workspace_id == "":
             print(f"Creating workspace {workspace_name}.")
