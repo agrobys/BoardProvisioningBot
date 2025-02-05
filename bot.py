@@ -124,7 +124,7 @@ class Bot:
             self.org_admin[org_id] = admin
             self.org_allowed_users[org_id] = [user_id]
             self.org_id_to_email[org_id] = {}
-        email = admin.get_email_from_id(user_id)
+        email = admin.get_email_from_id(user_id, room_id)
         self.org_id_to_email[org_id][user_id] = email
         self.room_to_org[room_id] = org_id
         return admin
@@ -132,16 +132,16 @@ class Bot:
     def remove_room_from_org(self, room_id):
         del self.room_to_org[room_id]
 
-    def add_allowed_user(self, org_id, email):
+    def add_allowed_user(self, org_id, email, room_id):
         admin = self.org_admin[org_id]
-        user_id = admin.get_id_from_email(email)
+        user_id = admin.get_id_from_email(email, room_id)
         if user_id != "" and user_id not in self.org_allowed_users[org_id]:
             self.org_allowed_users[org_id].append(user_id)
         return user_id
 
     def remove_allowed_user(self, org_id, email):
         admin = self.org_admin[org_id]
-        user_id = admin.get_id_from_email(email)
+        user_id = admin.get_id_from_email(email, room_id)
         if user_id != "" and user_id in self.org_allowed_users[org_id]:
             self.org_allowed_users[org_id].remove(user_id)
             return user_id
@@ -257,7 +257,7 @@ class Bot:
         elif len(command) > 1 and command[0] == "add" and actor_id in self.org_allowed_users[org_id]:
             print(f"User {self.org_id_to_email[org_id][actor_id]} allowed.")
             for email in command[1:]:
-                user_id = self.add_allowed_user(org_id, email)
+                user_id = self.add_allowed_user(org_id, email, room_id)
                 # Empty user_id means provided email was not found
                 if user_id == "":
                     self.api.messages.create(room_id, text=f"Please provide a valid email as a second argument. If {email} was valid, check if you need to update your access token.")
