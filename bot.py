@@ -179,6 +179,7 @@ class Bot:
                     self.api.messages.create(room_id, text="Initialization unsuccessful. Please check your "
                                                            "organization ID and access token or contact "
                                                            "agrobys@cisco.com for assistance.")
+                    return
             except KeyError:
                 self.api.messages.create(room_id, text="Please initialize", attachments=[self.init_card])
                 return
@@ -199,6 +200,7 @@ class Bot:
                 self.api.messages.create(room_id,
                                          text="Something went wrong. Please check if you need to update the access "
                                               "token.")
+                return
             activation_code = split_code(activation_code)
             print(f"Sending activation code.")
             self.api.messages.create(room_id, text=f"Here's your activation code: {activation_code}")

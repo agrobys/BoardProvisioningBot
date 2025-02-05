@@ -19,11 +19,13 @@ class Admin:
 
     def check_org_connectivity(self):
         try:
-            requests.get(
+            response = requests.get(
             url=f'https://webexapis.com/v1/workspaces?orgId={self.org_id}',
             headers=self.headers)
+            print(f"tried org connectivity. here is the response: {response.json()}")
             return True
         except ApiError:
+            print(f"tried org connectivity. it didn't work. here is the response: {response.json()}")
             return False
 
     def update_token(self, token):
