@@ -76,7 +76,7 @@ class Admin:
                 headers=self.headers)
         except ApiError:
             return ""
-        # print(response.json())
+        print(response.json())
         for workspace in response.json()["items"]:
             workspace_id = workspace["id"]
         # Create workspace if it doesn't exist
