@@ -78,11 +78,11 @@ class Admin:
                 headers=self.headers)
         except ApiError:
             return ""
-        try:
+        if "items" in response.json().keys():
             for workspace in response.json()["items"]:
                 workspace_id = workspace["id"]
-        except KeyError: # lazy workaround, sorry, means that likely token must be updated because an error was returned
-            print(f"Error returned. Response: {response.json()}")
+        else:
+            print(f"Something went wrong. Response: {response.json()}")
             return ""
         # Create workspace if it doesn't exist
         if workspace_id == "":
@@ -116,11 +116,11 @@ class Admin:
         try:
             response = requests.post(url="https://webexapis.com/v1/devices/activationCode?orgId=" + self.org_id,
                                  data=json.dumps(payload), headers=self.headers)
+            print("response.content", response.content)
+            print(json.loads(response.content))
         except ApiError:
             return ""
         print("response", response)
-        print("response.content", response.content)
-        print(json.loads(response.content))
         activation_code = json.loads(response.content)["code"]
         return activation_code
 
