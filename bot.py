@@ -139,6 +139,7 @@ class Bot:
                 print(f"Added user {email} to allowed for org {org_id}.")
         else:
             self.org_allowed_users[org_id] = [user_id]
+            self.org_id_to_email[org_id][user_id] = email
         return user_id
 
     def remove_allowed_user(self, org_id, email, room_id):
@@ -189,8 +190,8 @@ class Bot:
                 self.api.messages.create(room_id, text="Please initialize", attachments=[self.init_card])
                 return
         if actor_id in self.org_allowed_users[org_id]:
-            print(f"User {self.org_id_to_email[org_id][actor_id]} allowed.")
             try:
+                print(f"User {self.org_id_to_email[org_id][actor_id]} allowed.")
                 workspace_name = card_input.inputs["workspace"].strip()
             except KeyError:
                 self.api.messages.create(room_id, text="Bot initialized. If you need to update the access token, "
