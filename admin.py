@@ -30,6 +30,7 @@ class Admin:
 
     def update_token(self, token):
         self.my_token = token
+        self.headers = self.get_headers()
         try:
             self.my_id = self.api.people.me().id
         except ApiError:
