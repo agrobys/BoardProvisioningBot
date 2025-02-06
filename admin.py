@@ -99,6 +99,9 @@ class Admin:
                 return ""
             # print(response.content)
             workspace_id = json.loads(response.content)["id"]
+            print("got workspace id", workspace_id)
+        else:
+            print(f"Workspace {workspace_id} exists.")
         return workspace_id
 
     # Need to use requests library here since Webex SDK doesn't yet support workspaces & devices
