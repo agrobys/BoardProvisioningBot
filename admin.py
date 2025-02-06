@@ -37,29 +37,6 @@ class Admin:
             self.my_id = ""
         return self.my_id
 
-    # Converts email to User ID. Needed for allowed users list. Returns empty string if email not found.
-    def get_id_from_email(self, email, room_id) -> str:
-        try:
-            memberships = self.api.memberships.list(roomId=room_id, personEmail=email)
-            # users = self.api.people.list(email=email)
-            user_id = ""
-            for membership in memberships:
-                user_id = membership.personId
-            return user_id
-        except ApiError:
-            return ""
-
-    def get_email_from_id(self, person_id, room_id) -> str:
-        try:
-            memberships = self.api.memberships.list(roomId=room_id, personId=person_id)
-            # users = self.api.people.list(id=id)
-            email = ""
-            for membership in memberships:
-                email = membership.personEmail
-            return email
-        except ApiError:
-            return ""
-
     def get_headers(self) -> dict:
         headers = {
             "Authorization": "Bearer " + self.my_token,

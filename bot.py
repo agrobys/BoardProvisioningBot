@@ -1,5 +1,5 @@
 from __future__ import print_function  # Needed if you want to have console output using Flask
-from webexteamssdk import WebexTeamsAPI
+from webexteamssdk import WebexTeamsAPI, ApiError
 from webexteamssdk.models.cards import AdaptiveCard, TextBlock, Text
 from webexteamssdk.models.cards.actions import Submit
 from admin import Admin
@@ -124,17 +124,40 @@ class Bot:
             self.org_admin[org_id] = admin
             self.org_allowed_users[org_id] = [user_id]
             self.org_id_to_email[org_id] = {}
-        email = admin.get_email_from_id(user_id, room_id)
+        email = self.get_email_from_id(user_id, room_id)
         self.org_id_to_email[org_id][user_id] = email
         self.room_to_org[room_id] = org_id
         return admin
+
+    def get_email_from_id(self, person_id, room_id) -> str:
+        try:
+            memberships = self.api.memberships.list(roomId=room_id, personId=person_id)
+            # users = self.api.people.list(id=id)
+            email = ""
+            for membership in memberships:
+                email = membership.personEmail
+            return email
+        except ApiError:
+            return ""
+
+        # Converts email to User ID. Needed for allowed users list. Returns empty string if email not found.
+    def get_id_from_email(self, email, room_id) -> str:
+        try:
+            memberships = self.api.memberships.list(roomId=room_id, personEmail=email)
+            # users = self.api.people.list(email=email)
+            user_id = ""
+            for membership in memberships:
+                user_id = membership.personId
+            return user_id
+        except ApiError:
+            return ""
 
     def remove_room_from_org(self, room_id):
         del self.room_to_org[room_id]
 
     def add_allowed_user(self, org_id, email, room_id):
         admin = self.org_admin[org_id]
-        user_id = admin.get_id_from_email(email, room_id)
+        user_id = self.get_id_from_email(email, room_id)
         if user_id != "" and user_id not in self.org_allowed_users[org_id]:
             self.org_allowed_users[org_id].append(user_id)
         return user_id
