@@ -160,11 +160,12 @@ class Bot:
         user_id = self.get_id_from_email(email, room_id)
         if user_id != "" and user_id not in self.org_allowed_users[org_id]:
             self.org_allowed_users[org_id].append(user_id)
+            self.org_id_to_email[org_id][user_id] = email
         return user_id
 
-    def remove_allowed_user(self, org_id, email):
+    def remove_allowed_user(self, org_id, email, room_id):
         admin = self.org_admin[org_id]
-        user_id = admin.get_id_from_email(email, room_id)
+        user_id = self.get_id_from_email(email, room_id)
         if user_id != "" and user_id in self.org_allowed_users[org_id]:
             self.org_allowed_users[org_id].remove(user_id)
             return user_id
@@ -293,7 +294,7 @@ class Bot:
         elif len(command) > 1 and command[0] == "remove" and actor_id in self.org_allowed_users[org_id]:
             print(f"User {self.org_id_to_email[org_id][actor_id]} allowed.")
             for email in command[1:]:
-                user_id = self.remove_allowed_user(org_id, email)
+                user_id = self.remove_allowed_user(org_id, email, room_id)
                 # Empty user_id means provided email was not found
                 if user_id == "":
                     self.api.messages.create(room_id,
