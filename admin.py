@@ -118,6 +118,8 @@ class Admin:
                                  data=json.dumps(payload), headers=self.headers)
         except ApiError:
             return ""
+        print("response", response)
+        print("response.content", response.content)
         print(json.loads(response.content))
         activation_code = json.loads(response.content)["code"]
         return activation_code
