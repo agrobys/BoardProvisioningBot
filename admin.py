@@ -73,7 +73,6 @@ class Admin:
         workspace_id = ""
         # Get ID for specified workspace name
         try:
-            print(f'https://webexapis.com/v1/workspaces?orgId={self.org_id}&displayName={workspace_name}')
             response = requests.get(
                 url=f'https://webexapis.com/v1/workspaces?orgId={self.org_id}&displayName={workspace_name}',
                 headers=self.headers)
@@ -99,7 +98,7 @@ class Admin:
                 return ""
             # print(response.content)
             workspace_id = json.loads(response.content)["id"]
-            print("got workspace id", workspace_id)
+            print("Got workspace id", workspace_id)
         else:
             print(f"Workspace {workspace_id} exists.")
         return workspace_id
@@ -118,7 +117,7 @@ class Admin:
             payload["model"] = model
         # Create activation code
         try:
-            print(payload)
+            print(self.headers)
             response = requests.post(url="https://webexapis.com/v1/devices/activationCode?orgId=" + self.org_id,
                                  data=json.dumps(payload), headers=self.headers)
             print("response.content", response.content)
