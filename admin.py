@@ -73,6 +73,7 @@ class Admin:
         workspace_id = ""
         # Get ID for specified workspace name
         try:
+            print(f'https://webexapis.com/v1/workspaces?orgId={self.org_id}&displayName={workspace_name}')
             response = requests.get(
                 url=f'https://webexapis.com/v1/workspaces?orgId={self.org_id}&displayName={workspace_name}',
                 headers=self.headers)
