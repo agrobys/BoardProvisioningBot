@@ -1,76 +1,47 @@
 from __future__ import print_function  # Needed if you want to have console output using Flask
 from webexteamssdk import WebexTeamsAPI, ApiError
-from webexteamssdk.models.cards import AdaptiveCard, TextBlock, Text
-from webexteamssdk.models.cards.actions import Submit
-from admin import Admin
 import json
-
-
-# Creates the adaptive card that will be sent to users to fill in information.
-# Activation code will be generated based on the user input in this card
-def make_code_card() -> AdaptiveCard:
-    greeting = TextBlock("Get an activation code:")
-    workspace = Text('workspace', placeholder="Enter Workspace Name")
-    # model = Text('model', placeholder="Enter Device Model (Optional)")
-    submit = Submit(title="Provision")
-
-    card = AdaptiveCard(
-        body=[greeting, workspace], actions=[submit]
-    )
-    return card
-
-
-def make_init_card() -> AdaptiveCard:
-    greeting = TextBlock("Please initialize bot for this space:")
-    org_id = Text('org_id', placeholder="Enter organization ID")
-    access_token = Text('access_token', placeholder="Enter your personal access token")
-    submit = Submit(title="Init")
-
-    card = AdaptiveCard(
-        body=[greeting, org_id, access_token], actions=[submit]
-    )
-    return card
-
-
-def create_admin(admin_token, org_id):
-    admin = Admin(admin_token, org_id)
-    print("Admin created")
-    return admin
-
-
-# Adds readability to the activation code
-def split_code(code) -> str:
-    return code[:4] + '-' + code[4:8] + '-' + code[8:12] + '-' + code[12:]
+import helper
 
 
 # The entity communicating with the user
 class Bot:
 
     def __init__(self, data):
+        # read from file
         self.name = data["bot_name"]
+        self.email = data["bot_email"]
         self.bot_token = data["bot_token"]
+
+        # handles any API calls using the SDK
         self.api = WebexTeamsAPI(access_token=self.bot_token)
         self.id = self.api.people.me().id
-        self.email = data["bot_email"]
-        self.code_card = make_code_card()
-        self.init_card = make_init_card()
 
-        self.https_tunnel = None
+        # adaptive cards
+        self.code_card = helper.make_code_card()
+        self.init_card = helper.make_init_card()
+
+        # will be populated on startup
         self.webhooks = []
 
-        self.orgs = data["orgs"]
-        self.org_admin = {}
-        self.room_to_org = data["room_to_org"]
-        for org in data["org_admin"].keys():
-            admin = create_admin(data["org_admin"][org]["my_token"], data["org_admin"][org]["org_id"])
-            if admin.my_id == "":
-                for room in self.room_to_org.keys():
-                    if self.room_to_org[room] == org:
-                        self.reinit(room)
+        # user populated data, is read from file in app.py and passed on creation
+        # empty data passed if not found in file
+        self.orgs = data["orgs"]  # list of organizations
+        self.org_allowed_users = data["org_allowed_users"]  # list of allowed users for each organization
+        self.org_id_to_email = data["org_id_to_email"]  # list of mappings of ids to emails for users of each organization
+        self.room_to_admin = {}  # maps each room to its admin
+        self.room_to_org = data["room_to_org"]  # maps each room to its current org
+
+        #  create an admin for each known room
+        for room in data["admin_data"].keys():
+            admin = helper.create_admin(data["admin_data"][room]["admin_token"], data["admin_data"][room]["org_id"], self.room_to_org[room])
+            if admin.my_id == "": # if admin fails to get id, should be reinitialized
+                self.reinit(room)
             else:
-                self.org_admin[org] = admin
-        self.org_allowed_users = data["org_allowed_users"]
-        self.org_id_to_email = data["org_id_to_email"]
+                self.room_to_admin[room] = admin
+
+        self.unauthorized_message = ("You're unauthorized. Please contact the person who initialized the bot if you "
+                                     "require access.")
 
     def startup(self) -> None:
         webhooks = self.api.webhooks.list()
@@ -79,16 +50,16 @@ class Bot:
         if len(self.webhooks) < 4:
             print("Don't have all webhooks. Please verify")
 
-    def save(self):
+    def teardown(self) -> None:
         admins_saved = {}
-        for org in self.org_admin.keys():
-            admins_saved[org] = self.org_admin[org].save()
+        for room in self.room_to_admin.keys():
+            admins_saved[room] = self.room_to_admin[room].save()
         data = {
             "bot_name": self.name,
             "bot_token": self.bot_token,
             "bot_email": self.email,
             "orgs": self.orgs,
-            "org_admin": admins_saved,
+            "admin_data": admins_saved,
             "org_allowed_users": self.org_allowed_users,
             "room_to_org": self.room_to_org,
             "org_id_to_email": self.org_id_to_email
@@ -96,43 +67,40 @@ class Bot:
         with open("bot_data.json", "w") as file:
             json.dump(data, file)
 
-    def teardown(self) -> None:
-        self.save()
-
-    def reinit(self, room_id):
-        self.api.messages.create(roomId=room_id, text="Access token expired or not valid. Reinitializing...")
-        self.api.messages.create(room_id, text="Please initialize", attachments=[self.init_card])
-
     def init_org(self, org_id, access_token, room_id, user_id):
+        # check if this room is known already
         try:
-            admin = self.org_admin[org_id]
-            print("Org exists")
-            if admin.my_id == "":
-                admin_id = admin.update_token(access_token)
-                if admin_id == "":
-                    self.reinit(room_id)
-                    return None
-            if user_id not in self.org_allowed_users[org_id]:
-                print("Adding user to allowed")
-                self.org_allowed_users[org_id].append(user_id)
+            admin = self.room_to_admin[room_id]
+            print("Bot knows this room.")
+            if org_id != admin.org_id:
+                print("Room wants to change organization.")
+                self.room_to_org[room_id] = org_id
+            admin.update_token(access_token)
+            print("Token updated.")
+            if not admin.token_is_valid():
+                self.reinit(room_id)
+                return None
         except KeyError:
-            print("Org doesn't exist. Creating")
-            admin = create_admin(access_token, org_id)
-            if not admin.check_org_connectivity():
+            print("Bot does not know this room. Creating")
+            admin = helper.create_admin(access_token, org_id, room_id)
+            if not admin.token_is_valid():
                 del admin
                 return None
-            self.org_admin[org_id] = admin
-            self.org_allowed_users[org_id] = [user_id]
+            self.room_to_admin[room_id] = admin
             self.org_id_to_email[org_id] = {}
-        email = self.get_email_from_id(user_id, room_id)
-        self.org_id_to_email[org_id][user_id] = email
+
+        self.add_allowed_user(org_id, room_id, user_id=user_id)
         self.room_to_org[room_id] = org_id
+
         return admin
+
+    def reinit(self, room_id):
+        self.api.messages.create(roomId=room_id, text="Access token not valid or expired. Please reinitialize.")
+        self.api.messages.create(room_id, text="Please initialize", attachments=[self.init_card])
 
     def get_email_from_id(self, person_id, room_id) -> str:
         try:
             memberships = self.api.memberships.list(roomId=room_id, personId=person_id)
-            # users = self.api.people.list(id=id)
             email = ""
             for membership in memberships:
                 email = membership.personEmail
@@ -144,7 +112,6 @@ class Bot:
     def get_id_from_email(self, email, room_id) -> str:
         try:
             memberships = self.api.memberships.list(roomId=room_id, personEmail=email)
-            # users = self.api.people.list(email=email)
             user_id = ""
             for membership in memberships:
                 user_id = membership.personId
@@ -155,19 +122,30 @@ class Bot:
     def remove_room_from_org(self, room_id):
         del self.room_to_org[room_id]
 
-    def add_allowed_user(self, org_id, email, room_id):
-        admin = self.org_admin[org_id]
-        user_id = self.get_id_from_email(email, room_id)
-        if user_id != "" and user_id not in self.org_allowed_users[org_id]:
-            self.org_allowed_users[org_id].append(user_id)
-            self.org_id_to_email[org_id][user_id] = email
+    def add_allowed_user(self, org_id, room_id, email=None, user_id=None):
+        if not user_id:
+            user_id = self.get_id_from_email(email, room_id)
+        elif not email:
+            email = self.get_email_from_id(user_id, room_id)
+        else:
+            print("Error: Must specify user_id or email.")
+            return ""
+        if user_id == "":
+            return user_id
+        if org_id in self.orgs:
+            if user_id not in self.org_allowed_users[org_id]:
+                self.org_allowed_users[org_id].append(user_id)
+                self.org_id_to_email[org_id][user_id] = email
+                print(f"Added user {email} to allowed for org {org_id}.")
+        else:
+            self.org_allowed_users[org_id] = [user_id]
         return user_id
 
     def remove_allowed_user(self, org_id, email, room_id):
-        admin = self.org_admin[org_id]
         user_id = self.get_id_from_email(email, room_id)
         if user_id != "" and user_id in self.org_allowed_users[org_id]:
             self.org_allowed_users[org_id].remove(user_id)
+            print(f"Removed user {email} from allowed for org {org_id}.")
             return user_id
         else:
             return ""
@@ -178,20 +156,23 @@ class Bot:
                                                "admin's access token.")
         self.api.messages.create(room_id, text="Please initialize", attachments=[self.init_card])
 
+    # currently not in use, if want to use please rework
     def handle_removed(self, room_id):
         org_id = self.room_to_org[room_id]
         self.remove_room_from_org(room_id)
-        if org_id not in self.room_to_org.values():
-            del self.org_admin[org_id]
-            del self.org_allowed_users[org_id]
-            del self.org_id_to_email[org_id]
+        # if org_id not in self.room_to_org.values():
+            # del self.room_to_admin[room_id]
+
+    def handle_unauthorized(self, org_id, actor_id, room_id):
+        print(f"User {self.org_id_to_email[org_id][actor_id]} unauthorized.")
+        self.api.messages.create(room_id, text=self.unauthorized_message)
 
     # Is called when card was submitted. Asks Admin to create activation code and sends it in the chat
     def handle_card(self, attachment_id, room_id, actor_id):
         card_input = self.api.attachment_actions.get(id=attachment_id)
         try:
             org_id = self.room_to_org[room_id]
-            admin = self.org_admin[org_id]
+            admin = self.room_to_admin[room_id]
         except KeyError:
             try:
                 org_id = card_input.inputs["org_id"]
@@ -223,15 +204,13 @@ class Bot:
             if activation_code == "":
                 self.api.messages.create(room_id,
                                          text="Something went wrong. Please check if you need to update the access "
-                                              "token.")
+                                              "token or if you've been sending too many requests.")
                 return
-            activation_code = split_code(activation_code)
+            activation_code = helper.split_code(activation_code)
             print(f"Sending activation code.")
             self.api.messages.create(room_id, text=f"Here's your activation code: {activation_code}")
         else:
-            print(f"User {self.org_id_to_email[org_id][actor_id]} unauthorized.")
-            self.api.messages.create(room_id, text=f"You're unauthorized. Please contact the person who initialized "
-                                                   f"the bot if you require access.")
+            self.handle_unauthorized(org_id, actor_id, room_id)
 
     # Is called when bot is mentioned. Checks for commands (if no special command is detected, it will send the
     # adaptive card)
@@ -242,7 +221,7 @@ class Bot:
         # Make sure bot is initialized for this room
         try:
             org_id = self.room_to_org[room_id]
-            admin = self.org_admin[org_id]
+            admin = self.room_to_admin[room_id]
         except KeyError:
             self.api.messages.create(room_id, text="Please initialize", attachments=[self.init_card])
             return
@@ -254,18 +233,19 @@ class Bot:
             command = message.split()
         print(f"Command: {' '.join(command)}")
 
-        if len(command) > 1 and command[0] == "token" and actor_id in self.org_allowed_users[org_id]:
-            admin_id = admin.update_token(command[1])
-            if admin_id == "":
-                self.api.messages.create(room_id, text=f"Token invalid. Please double check and try again.")
+        # Command empty, send card
+        if len(command) == 0:
+            print("Sending card")
+            self.api.messages.create(room_id, text="Here's your card", attachments=[self.code_card])
+
+        elif command[0] == "reinit":
+            if actor_id in self.org_allowed_users[org_id]:
+                self.remove_room_from_org(room_id)
+                self.api.messages.create(room_id, text="Please initialize", attachments=[self.init_card])
             else:
-                self.api.messages.create(room_id, text=f"Access token successfully updated.")
+                self.handle_unauthorized(org_id, actor_id, room_id)
 
-        elif len(command) > 0 and command[0] == "reinit" and actor_id in self.org_allowed_users[org_id]:
-            self.remove_room_from_org(room_id)
-            self.api.messages.create(room_id, text="Please initialize", attachments=[self.init_card])
-
-        elif len(command) > 0 and command[0] == "help":
+        elif command[0] == "help":
             self.api.messages.create(room_id, text=f"To initialize the bot, please fill out the card. If you don't "
                                                    f"see the card, mention the bot to receive it. If the bot is "
                                                    f"already initialized, mention the bot to receive a card to fill "
@@ -274,35 +254,40 @@ class Bot:
                                                    f"several at once separated with a space\n- "
                                                    f"remove [email]: remove an authorized user from your organization; "
                                                    f"remove several at once separated with a space\n- "
-                                                   f"token [token]: update the access token\n- reinit: reinitialize "
-                                                   f"the bot (if you would like to change the organization for this "
-                                                   f"room).\n\nIf you require further assistance, please contact me "
+                                                   f"reinit: change organization and/or token for this room\n "
+                                                   f"If you require further assistance, please contact me "
                                                    f"at agrobys@cisco.com.")
 
         # Adds allowed users on "add" command
-        elif len(command) > 1 and command[0] == "add" and actor_id in self.org_allowed_users[org_id]:
-            print(f"User {self.org_id_to_email[org_id][actor_id]} allowed.")
-            for email in command[1:]:
-                user_id = self.add_allowed_user(org_id, email, room_id)
-                # Empty user_id means provided email was not found
-                if user_id == "":
-                    self.api.messages.create(room_id, text=f"Please provide a valid email as a second argument. If {email} was valid, check if you need to update your access token.")
-                else:
-                    self.api.messages.create(room_id, text=f"User {email} added successfully.")
+        elif len(command) > 1 and command[0] == "add":
+            if actor_id in self.org_allowed_users[org_id]:
+                print(f"User {self.org_id_to_email[org_id][actor_id]} allowed.")
+                for email in command[1:]:
+                    user_id = self.add_allowed_user(org_id, room_id, email=email)
+                    # Empty user_id means provided email was not found
+                    if user_id == "":
+                        self.api.messages.create(room_id, text=f"Something went wrong. If {email} was valid, check if you need to update your access token.")
+                    else:
+                        self.api.messages.create(room_id, text=f"User {email} added successfully.")
+            else:
+                self.handle_unauthorized(org_id, actor_id, room_id)
 
         # Removes allowed users on "remove" command
-        elif len(command) > 1 and command[0] == "remove" and actor_id in self.org_allowed_users[org_id]:
-            print(f"User {self.org_id_to_email[org_id][actor_id]} allowed.")
-            for email in command[1:]:
-                user_id = self.remove_allowed_user(org_id, email, room_id)
-                # Empty user_id means provided email was not found
-                if user_id == "":
-                    self.api.messages.create(room_id,
+        elif len(command) > 1 and command[0] == "remove":
+            if actor_id in self.org_allowed_users[org_id]:
+                print(f"User {self.org_id_to_email[org_id][actor_id]} allowed.")
+                for email in command[1:]:
+                    user_id = self.remove_allowed_user(org_id, email, room_id)
+                    # Empty user_id means provided email was not found
+                    if user_id == "":
+                        self.api.messages.create(room_id,
                                                  text=f"User not found in allowed list. If {email} was valid, check if you need to update your access token.")
-                else:
-                    self.api.messages.create(room_id, text=f"User {email} removed successfully.")
+                    else:
+                        self.api.messages.create(room_id, text=f"User {email} removed successfully.")
+            else:
+                self.handle_unauthorized(org_id, actor_id, room_id)
 
         # Sends card if no special command is detected
         else:
-            print(f"Sending card (No special command detected or user unauthorized).")
+            print(f"Sending card (No known command detected).")
             self.api.messages.create(room_id, text="Here's your card", attachments=[self.code_card])

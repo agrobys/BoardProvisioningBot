@@ -2,14 +2,16 @@ from __future__ import print_function  # Needed if you want to have console outp
 import requests
 import json
 from webexteamssdk import WebexTeamsAPI, ApiError
+import helper
 
 
 # The entity making calls on the organization
 class Admin:
 
-    def __init__(self, my_token: str, org_id: str):
+    def __init__(self, my_token: str, org_id: str, room_id: str):
         self.my_token = my_token
         self.org_id = org_id
+        self.room_id = room_id
         self.api = WebexTeamsAPI(access_token=self.my_token)
         self.headers = self.get_headers()
         try:
@@ -17,15 +19,16 @@ class Admin:
         except ApiError:
             self.my_id = ""
 
-    def check_org_connectivity(self):
-        try:
-            response = requests.get(
+    def token_is_valid(self):
+        response = requests.get(
             url=f'https://webexapis.com/v1/workspaces?orgId={self.org_id}',
             headers=self.headers)
-            print(f"tried org connectivity. here is the response: {response.json()}")
+        response = helper.load_text(response)
+        if isinstance(response, dict) and "items" in response.keys():
+            print("Token valid.")
             return True
-        except ApiError:
-            print(f"tried org connectivity. it didn't work. here is the response: {response.json()}")
+        else:
+            print(f"Token assumed invalid. Response received: {response}")
             return False
 
     def update_token(self, token):
@@ -56,11 +59,11 @@ class Admin:
                 headers=self.headers)
         except ApiError:
             return ""
-        if "items" in response.json().keys():
+        if helper.is_json(response) and "items" in response.json().keys():
             for workspace in response.json()["items"]:
                 workspace_id = workspace["id"]
         else:
-            print(f"Something went wrong. Response: {response.json()}")
+            print(f"Something went wrong. Response: {helper.load_text(response)}")
             return ""
         # Create workspace if it doesn't exist
         if workspace_id == "":
@@ -75,8 +78,11 @@ class Admin:
             except ApiError:
                 return ""
             # print(response.content)
-            workspace_id = json.loads(response.content)["id"]
-            print("Got workspace id", workspace_id)
+            if helper.is_json(response):
+                workspace_id = json.loads(response.content)["id"]
+            else:
+                print(f"Something went wrong. Response: {helper.load_text(response)}")
+                return ""
         else:
             print(f"Workspace {workspace_id} exists.")
         return workspace_id
@@ -84,31 +90,33 @@ class Admin:
     # Need to use requests library here since Webex SDK doesn't yet support workspaces & devices
     # Gets activation code for a workspace
     def get_activation_code(self, workspace_name, model=None) -> str:
+        # check if token is valid
+        if not self.token_is_valid():
+            return ""
         # Get ID for specified workspace name
         workspace_id = self.get_workspace_id(workspace_name)
         if workspace_id == "":
             return ""
-        payload = {
-            "workspaceId": workspace_id
-        }
+        payload = {"workspaceId": workspace_id}
         if model:
             payload["model"] = model
         # Create activation code
         try:
-            print(self.headers)
             response = requests.post(url="https://webexapis.com/v1/devices/activationCode?orgId=" + self.org_id,
                                  data=json.dumps(payload), headers=self.headers)
-            print("response.content", response.content)
-            print(json.loads(response.content))
         except ApiError:
             return ""
-        activation_code = json.loads(response.content)["code"]
-        return activation_code
+        if helper.is_json(response):
+            activation_code = json.loads(response.content)["code"]
+            return activation_code
+        else:
+            print(f"Something went wrong. Response: {helper.load_text(response)}")
+            return ""
 
     def save(self):
         data = {
-            "my_token": self.my_token,
-            "org_id": self.org_id,
+            "admin_token": self.my_token,
+            "org_id": self.org_id
         }
         return data
 
