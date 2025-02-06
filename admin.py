@@ -118,13 +118,13 @@ class Admin:
             payload["model"] = model
         # Create activation code
         try:
+            print(payload)
             response = requests.post(url="https://webexapis.com/v1/devices/activationCode?orgId=" + self.org_id,
                                  data=json.dumps(payload), headers=self.headers)
             print("response.content", response.content)
             print(json.loads(response.content))
         except ApiError:
             return ""
-        print("response", response)
         activation_code = json.loads(response.content)["code"]
         return activation_code
 
