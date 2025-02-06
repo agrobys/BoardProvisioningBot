@@ -209,7 +209,7 @@ class Bot:
                 return
             activation_code = helper.split_code(activation_code)
             print(f"Sending activation code.")
-            self.api.messages.create(room_id, text=f"Here's your activation code: {activation_code}")
+            self.api.messages.create(room_id, text=f"Here's your activation code: {activation_code} for workspace {workspace_name}")
         else:
             self.handle_unauthorized(org_id, actor_id, room_id)
 
