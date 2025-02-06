@@ -88,7 +88,7 @@ if __name__ == "__main__":
             "bot_token": os.environ.get("BOT_TOKEN"),
             "bot_email": os.environ.get("BOT_EMAIL"),
             "orgs": [],
-            "org_admin": {},
+            "admin_data": {},
             "org_allowed_users": {},
             "room_to_org": {},
             "org_id_to_email": {}
